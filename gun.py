@@ -20,9 +20,11 @@ GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 WIDTH = 800
 HEIGHT = 600
 
+G = 1
+
 
 class Ball:
-    def __init__(self, screen: pygame.Surface, x=40, y=450):
+    def __init__(self, screen: pygame.Surface, x=10, y=550):
         """ Конструктор класса ball
 
         Args:
@@ -45,9 +47,10 @@ class Ball:
         self.x и self.y с учетом скоростей self.vx и self.vy, силы гравитации, действующей на мяч,
         и стен по краям окна (размер окна 800х600).
         """
-        # FIXME
+
         self.x += self.vx
         self.y -= self.vy
+        self.vy -= G
 
     def draw(self):
         pygame.draw.circle(
@@ -66,8 +69,7 @@ class Ball:
             Возвращает True в случае столкновения мяча и цели. В противном случае возвращает False.
         """
         # FIXME
-            #return False
-
+        pass
 
 class Gun:
     def __init__(self, screen):
