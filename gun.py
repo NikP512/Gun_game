@@ -1,5 +1,5 @@
 import math
-from random import choice
+from random import choice, randint
 
 import pygame
 
@@ -102,14 +102,14 @@ class Gun:
     def targetting(self, event):
         """Прицеливание. Зависит от положения мыши."""
         if event:
-            self.an = math.atan((event.pos[1]-450) / (event.pos[0]-20))
+            self.an = math.atan((event.pos[1]-550) / (event.pos[0]-10))
         if self.f2_on:
             self.color = RED
         else:
             self.color = GREY
 
     def draw(self):
-        return False
+        pass
         #FIXIT don't know how to do it
 
     def power_up(self):
@@ -122,24 +122,25 @@ class Gun:
 
 
 class Target:
-    # self.points = 0
-    # self.live = 1
-    # FIXME: don't work!!! How to call this functions when object is created?
-    # self.new_target()
+    def __init__(self, screen):
+        self.screen = screen
+        self.points = 0
+        self.live = 1
+        self.new_target()
 
     def new_target(self):
         """ Инициализация новой цели. """
-        #x = self.x = rnd(600, 780)
-        #y = self.y = rnd(300, 550)
-        #r = self.r = rnd(2, 50)
-        color = self.color = RED
+        self.r = randint(2, 50)
+        self.x = randint(WIDTH//2, WIDTH-self.r)
+        self.y = randint(self.r, HEIGHT-self.r)
+        self.color = RED
 
     def hit(self, points=1):
         """Попадание шарика в цель."""
         self.points += points
 
     def draw(self):
-        ...
+        pass
 
 
 pygame.init()
@@ -149,7 +150,7 @@ balls = []
 
 clock = pygame.time.Clock()
 gun = Gun(screen)
-target = Target()
+target = Target(screen)
 finished = False
 
 while not finished:
