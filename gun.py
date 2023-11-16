@@ -4,7 +4,7 @@ from random import choice, randint
 import pygame
 
 
-FPS = 30
+FPS = 60
 
 RED = 0xFF0000
 BLUE = 0x0000FF
@@ -24,7 +24,7 @@ G = 1
 
 
 class Ball:
-    def __init__(self, screen: pygame.Surface, x=10, y=550):
+    def __init__(self, screen, x=20, y=550):
         """ Конструктор класса ball
 
         Args:
@@ -38,7 +38,7 @@ class Ball:
         self.vx = 0
         self.vy = 0
         self.color = choice(GAME_COLORS)
-        self.live = 30
+        self.live = 300
 
     def move(self):
         """Переместить мяч по прошествии единицы времени.
@@ -51,9 +51,15 @@ class Ball:
         self.x += self.vx
         self.y -= self.vy
         self.vy -= G
+        if self.y >= HEIGHT - self.r and self.vy < 0:
+            self.vy = -self.vy//2
+        if self.x >= WIDTH - self.r and self.vx > 0 or self.x <= self.r and self.vx < 0:
+            self.vx = -self.vx//2
+
 
     def draw(self):
-        pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
+        if self.live > 0:
+            pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
 
     def hittest(self, obj):
         """Функция проверяет сталкивалкивается ли данный обьект с целью, описываемой в обьекте obj.
@@ -63,8 +69,7 @@ class Ball:
         Returns:
             Возвращает True в случае столкновения мяча и цели. В противном случае возвращает False.
         """
-        # FIXME
-        pass
+        return (self.x - obj.x)**2 + (self.y - obj.y)**2 < (self.r + obj.r)**2
 
 class Gun:
     def __init__(self, screen):
@@ -86,7 +91,6 @@ class Gun:
         global balls, bullet
         bullet += 1
         new_ball = Ball(self.screen)
-        new_ball.r += 5
         self.an = math.atan2((event.pos[1]-new_ball.y), (event.pos[0]-new_ball.x))
         new_ball.vx = self.f2_power * math.cos(self.an)
         new_ball.vy = - self.f2_power * math.sin(self.an)
@@ -97,7 +101,7 @@ class Gun:
     def targetting(self, event):
         """Прицеливание. Зависит от положения мыши."""
         if event:
-            self.an = math.atan((event.pos[1]-550) / (event.pos[0]-10))
+            self.an = math.atan((event.pos[1]-550) / (event.pos[0]-20))
         if self.f2_on:
             self.color = RED
         else:
@@ -120,14 +124,14 @@ class Target:
     def __init__(self, screen):
         self.screen = screen
         self.points = 0
-        self.live = 1
         self.new_target()
 
     def new_target(self):
         """ Инициализация новой цели. """
-        self.r = randint(2, 50)
+        self.live = 1
+        self.r = randint(5, 20)
         self.x = randint(WIDTH//2, WIDTH-self.r)
-        self.y = randint(self.r, HEIGHT-self.r)
+        self.y = randint(self.r, HEIGHT-self.r-10)
         self.color = RED
 
     def hit(self, points=1):
@@ -135,7 +139,7 @@ class Target:
         self.points += points
 
     def draw(self):
-        pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
+            pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
 
 
 pygame.init()
@@ -149,11 +153,13 @@ target = Target(screen)
 finished = False
 
 while not finished:
+    print(clock)
     screen.fill(WHITE)
     gun.draw()
     target.draw()
     for b in balls:
         b.draw()
+        b.live -= 1
     pygame.display.update()
 
     clock.tick(FPS)
