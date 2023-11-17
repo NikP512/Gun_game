@@ -80,7 +80,6 @@ class Gun:
         self.color = GREY
 
     def get_on(self, keys):
-        self.color = RED
         if keys[pygame.K_SPACE]:
             if self.power < 10 or self.power > 50:
                 self.growth_power = -self.growth_power
@@ -108,11 +107,13 @@ class Gun:
             bullet += 1
             new_ball = Ball(self.screen)
             new_ball.vx = self.power * math.cos(self.an/180*math.pi)
-            new_ball.vy = - self.power * math.sin(self.an/180*math.pi)
+            new_ball.vy = self.power * math.sin(self.an/180*math.pi)
             engine.balls.append(new_ball)
+            self.power = 10
+            self.growth_power = 1
     
     def draw(self):
-        pygame.draw.rect(self.screen, self.color, (0, 500, self.power, 10))
+        pygame.draw.polygon(self.screen, self.color, [(0, 500), (self.power*math.cos(self.an/180*math.pi),500-self.power*math.sin(self.an/180*math.pi)), (10*math.sin(self.an/180*math.pi)+self.power*math.cos(self.an/180*math.pi), 500+10*math.cos(self.an/180*math.pi)-self.power*math.sin(self.an/180*math.pi)), (10*math.sin(self.an/180*math.pi), 500+10*math.cos(self.an/180*math.pi))])
 
 class Target:
     def __init__(self, screen):
