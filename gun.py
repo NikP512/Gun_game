@@ -15,6 +15,7 @@ CYAN = 0x00FFCC
 BLACK = (0, 0, 0)
 WHITE = 0xFFFFFF
 GREY = 0x7D7D7D
+LIGHT_ZEFIR = (233, 216, 218)
 GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 
 WIDTH = 800
@@ -24,7 +25,7 @@ G = 1
 
 
 class Ball:
-    def __init__(self, screen, x=20, y=550):
+    def __init__(self, screen, x=0, y=500):
         """ Конструктор класса ball
 
         Args:
@@ -58,8 +59,7 @@ class Ball:
 
 
     def draw(self):
-        if self.live > 0:
-            pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
+        pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
 
     def hittest(self, obj):
         """Функция проверяет сталкивалкивается ли данный обьект с целью, описываемой в обьекте obj.
@@ -74,51 +74,45 @@ class Ball:
 class Gun:
     def __init__(self, screen):
         self.screen = screen
-        self.f2_power = 10
-        self.f2_on = 0
-        self.an = 1
+        self.power = 10
+        self.an = 0
+        self.growth_power = 1
         self.color = GREY
 
-    def fire2_start(self, event):
-        self.f2_on = 1
+    def get_on(self, keys):
+        self.color = RED
+        if keys[pygame.K_SPACE]:
+            if self.power < 10 or self.power > 50:
+                self.growth_power = -self.growth_power
+            self.power_up()
+        if keys[pygame.K_w]:
+            self.targetting(1)
+        if keys[pygame.K_s]:
+            self.targetting(-1)
 
-    def fire2_end(self, event):
-        """Выстрел мячом.
-
-        Происходит при отпускании кнопки мыши.
-        Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
-        """
-        global balls, bullet
-        bullet += 1
-        new_ball = Ball(self.screen)
-        self.an = math.atan2((event.pos[1]-new_ball.y), (event.pos[0]-new_ball.x))
-        new_ball.vx = self.f2_power * math.cos(self.an)
-        new_ball.vy = - self.f2_power * math.sin(self.an)
-        balls.append(new_ball)
-        self.f2_on = 0
-        self.f2_power = 10
-
-    def targetting(self, event):
-        """Прицеливание. Зависит от положения мыши."""
-        if event:
-            self.an = math.atan((event.pos[1]-550) / (event.pos[0]-20))
-        if self.f2_on:
-            self.color = RED
-        else:
-            self.color = GREY
-
-    def draw(self):
-        pass
-        #FIXIT don't know how to do it
+    def targetting(self, c):
+        """Изменение угла выстрела. Увеличение происходит при нажатии 'w', уменьшение -- при нажатии 's'."""
+        self.an += c
+        if self.an > 90:
+            self.an = 90
+        if self.an < 0:
+            self.an = 0
 
     def power_up(self):
-        if self.f2_on:
-            if self.f2_power < 100:
-                self.f2_power += 1
-            self.color = RED
-        else:
-            self.color = GREY
+        """Выбор скорости выстрела. Происходит при удерживании пробела"""
+        self.power += self.growth_power
 
+    def get_off(self, event):
+        if event.key == pygame.K_SPACE:
+            global bullet
+            bullet += 1
+            new_ball = Ball(self.screen)
+            new_ball.vx = self.power * math.cos(self.an/180*math.pi)
+            new_ball.vy = - self.power * math.sin(self.an/180*math.pi)
+            engine.balls.append(new_ball)
+    
+    def draw(self):
+        pygame.draw.rect(self.screen, self.color, (0, 500, self.power, 10))
 
 class Target:
     def __init__(self, screen):
@@ -129,56 +123,60 @@ class Target:
     def new_target(self):
         """ Инициализация новой цели. """
         self.live = 1
-        self.r = randint(5, 20)
+        self.r = randint(10, 20)
         self.x = randint(WIDTH//2, WIDTH-self.r)
-        self.y = randint(self.r, HEIGHT-self.r-10)
-        self.color = RED
+        self.y = randint(self.r, 500)
+        self.color = (RED, WHITE, BLACK)
 
     def hit(self, points=1):
         """Попадание шарика в цель."""
         self.points += points
 
     def draw(self):
-            pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
+        pygame.draw.circle(self.screen, self.color[0], (self.x, self.y), self.r, width=self.r//2)
+        pygame.draw.circle(self.screen, self.color[1], (self.x, self.y), self.r-self.r//2)
+        pygame.draw.circle(self.screen, self.color[2], (self.x, self.y), 2)
 
+class Game_Engine:
+    """Игровой "движок", который следит за состоянием объектов и обновляет их."""
+    def __init__(self, screen):
+        self.screen = screen
+        self.gun = Gun(screen)
+        self.target = Target(screen)
+        self.balls = []
+    def update(self):
+        screen.fill(LIGHT_ZEFIR)
+        self.gun.draw()
+        self.target.draw()
+        for ball in self.balls:
+            ball.draw()
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 bullet = 0
-balls = []
 
 clock = pygame.time.Clock()
-gun = Gun(screen)
-target = Target(screen)
+engine = Game_Engine(screen)
 finished = False
 
 while not finished:
-    print(clock)
-    screen.fill(WHITE)
-    gun.draw()
-    target.draw()
-    for b in balls:
-        b.draw()
-        b.live -= 1
+    engine.update()
     pygame.display.update()
 
     clock.tick(FPS)
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             finished = True
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            gun.fire2_start(event)
-        elif event.type == pygame.MOUSEBUTTONUP:
-            gun.fire2_end(event)
-        elif event.type == pygame.MOUSEMOTION:
-            gun.targetting(event)
+        if event.type == pygame.KEYUP:
+            engine.gun.get_off(event)
+        keys = pygame.key.get_pressed()
+        engine.gun.get_on(keys)
 
-    for b in balls:
+    for b in engine.balls:
         b.move()
-        if b.hittest(target) and target.live:
-            target.live = 0
-            target.hit()
-            target.new_target()
-    gun.power_up()
-
+        if b.hittest(engine.target) and engine.target.live:
+            engine.target.live = 0
+            b.live = 0
+            engine.target.hit()
+            engine.target.new_target()
 pygame.quit()
