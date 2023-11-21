@@ -29,7 +29,7 @@ class Ball:
         self.screen = screen
         self.x = x
         self.y = y
-        self.r = 10
+        self.r = 5
         self.vx = 0
         self.vy = 0
         self.color = choice(GAME_COLORS)
@@ -45,10 +45,6 @@ class Ball:
         self.x += self.vx
         self.y -= self.vy
         self.vy -= G
-        if self.y >= HEIGHT - self.r and self.vy < 0:
-            self.vy = -self.vy//2
-        if self.x >= WIDTH - self.r and self.vx > 0 or self.x <= self.r and self.vx < 0:
-            self.vx = -self.vx//2
 
     def draw(self):
         pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
@@ -154,6 +150,7 @@ class GameEngine:
 
     def update_balls(self):
         for ball in engine.balls:
+            ball.move()
             if ball.hittest(engine.target):
                 engine.target = Target(engine.screen)
 
