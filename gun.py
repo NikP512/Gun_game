@@ -90,6 +90,7 @@ class Target:
     def __init__(self, screen):
         self.screen = screen
         self.r = randint(10, 20)
+        self.points = 150 - 5*self.r
         self.x = randint(WIDTH//2, WIDTH-self.r)
         self.y = randint(self.r, 500)
         self.color = (RED, WHITE, BLACK)
@@ -111,7 +112,7 @@ class GameEngine:
         self.gun = Gun(self.screen)
         self.target = Target(self.screen)
         self.balls = []
-        self.text = Text()
+        self.fonts = [pygame.font.SysFont('timesnewroman', 48), pygame.font.SysFont('timesnewroman', 36)]
 
     def draw(self):
         """Метод, описывающий отрисовку объектов"""
@@ -120,8 +121,8 @@ class GameEngine:
         self.target.draw()
         for ball in self.balls:
             ball.draw()
-        for t in self.text.text:
-            self.screen.blit(t[0], t[1])
+        self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.points), True, BLACK), (10, 10))
+        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.points), True, BLACK), (10, 50))
         pygame.display.update()
         self.clock.tick(FPS)
 
@@ -131,6 +132,7 @@ class GameEngine:
         new_ball.vx = self.gun.power * math.cos(self.gun.an / 180 * math.pi)
         new_ball.vy = self.gun.power * math.sin(self.gun.an / 180 * math.pi)
         engine.balls.append(new_ball)
+        self.target.points -= 5
         self.gun.power = 10
         self.gun.growth_power = 1
         self.gun.color = GREY
@@ -156,21 +158,9 @@ class GameEngine:
         for ball in engine.balls:
             ball.move()
             if ball.hittest(engine.target):
+                self.points += self.target.points
                 engine.target = Target(engine.screen)
                 engine.balls.remove(ball)
-
-
-
-
-class Text:
-    """Класс, в котором хранятся все шрифты и тексты, используемые в программе"""
-    def __init__(self):
-        pygame.font.init()
-        self.fonts = [pygame.font.SysFont('timesnewroman', 48), pygame.font.SysFont('timesnewroman', 36)]
-        self.text = []
-
-    def generate_text(self, font, x, y, str1, str2=''):
-        self.text.append((self.fonts[font].render(str1 + str2, True, BLACK), (x, y)))
 
 
 engine = GameEngine()
