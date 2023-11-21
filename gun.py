@@ -21,17 +21,11 @@ GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 WIDTH = 800
 HEIGHT = 600
 
-G = 1
+G = 0
 
 
 class Ball:
     def __init__(self, screen, x=0, y=500):
-        """ Конструктор класса ball
-
-        Args:
-        x - начальное положение мяча по горизонтали
-        y - начальное положение мяча по вертикали
-        """
         self.screen = screen
         self.x = x
         self.y = y
@@ -39,7 +33,6 @@ class Ball:
         self.vx = 0
         self.vy = 0
         self.color = choice(GAME_COLORS)
-        self.live = 300
 
     def move(self):
         """Переместить мяч по прошествии единицы времени.
@@ -81,6 +74,7 @@ class Gun:
 
     def targetting(self, c):
         """Изменение угла выстрела. Увеличение происходит при нажатии 'w', уменьшение -- при нажатии 's'."""
+        self.color = GREEN
         self.an += c
         if self.an > 90:
             self.an = 90
@@ -89,32 +83,16 @@ class Gun:
 
     def power_up(self):
         """Выбор скорости выстрела. Происходит при удерживании пробела"""
+        self.color = RED
         self.power += self.growth_power
-
-    def get_off(self, event):
-        """"""
-        if event.key == pygame.K_SPACE:
-            global bullet
-            bullet += 1
-            new_ball = Ball(self.screen)
-            new_ball.vx = self.power * math.cos(self.an/180*math.pi)
-            new_ball.vy = self.power * math.sin(self.an/180*math.pi)
-            engine.balls.append(new_ball)
-            self.power = 10
-            self.growth_power = 1
     
     def draw(self):
-        pygame.draw.polygon(self.screen, self.color, [(0, 500), (self.power*math.cos(self.an/180*math.pi),500-self.power*math.sin(self.an/180*math.pi)), (10*math.sin(self.an/180*math.pi)+self.power*math.cos(self.an/180*math.pi), 500+10*math.cos(self.an/180*math.pi)-self.power*math.sin(self.an/180*math.pi)), (10*math.sin(self.an/180*math.pi), 500+10*math.cos(self.an/180*math.pi))])
+        pygame.draw.polygon(self.screen, self.color, [(0, 500), (self.power*math.cos(self.an/180*math.pi), 500-self.power*math.sin(self.an/180*math.pi)), (10*math.sin(self.an/180*math.pi)+self.power*math.cos(self.an/180*math.pi), 500+10*math.cos(self.an/180*math.pi)-self.power*math.sin(self.an/180*math.pi)), (10*math.sin(self.an/180*math.pi), 500+10*math.cos(self.an/180*math.pi))])
 
 
 class Target:
     def __init__(self, screen):
         self.screen = screen
-        self.new_target()
-
-    def new_target(self):
-        """ Инициализация новой цели. """
-        self.live = 1
         self.r = randint(10, 20)
         self.x = randint(WIDTH//2, WIDTH-self.r)
         self.y = randint(self.r, 500)
@@ -137,25 +115,28 @@ class GameEngine:
         self.target = Target(self.screen)
         self.balls = []
 
-    def update(self):
+    def draw(self):
+        """Метод, описывающий отрисовку объектов"""
         self.screen.fill(LIGHT_ZEFIR)
         self.gun.draw()
         self.target.draw()
         for ball in self.balls:
             ball.draw()
-            ball.move()
         pygame.display.update()
         self.clock.tick(FPS)
 
     def shoot(self):
+        """Метод описывает поведение игры при выстреле: создается новый шар, обновляются атрибуты объекта engine."""
         new_ball = Ball(self.screen)
         new_ball.vx = self.gun.power * math.cos(self.gun.an / 180 * math.pi)
         new_ball.vy = self.gun.power * math.sin(self.gun.an / 180 * math.pi)
         engine.balls.append(new_ball)
         self.gun.power = 10
         self.gun.growth_power = 1
+        self.gun.color = GREY
 
     def checking_events(self):
+        """Метод проверяет события, произошедшие за один кадр и вызывает соответствующие методы своих атрибутов."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 self.running = False
@@ -171,15 +152,15 @@ class GameEngine:
             if keys[pygame.K_s]:
                 self.gun.targetting(-1)
 
+    def update_balls(self):
+        for ball in engine.balls:
+            if ball.hittest(engine.target):
+                engine.target = Target(engine.screen)
+
 
 engine = GameEngine()
 while engine.running:
-    engine.update()
+    engine.draw()
     engine.checking_events()
-
-    for b in engine.balls:
-        if b.hittest(engine.target) and engine.target.live:
-            engine.target.live = 0
-            b.live = 0
-            engine.target.new_target()
+    engine.update_balls()
 pygame.quit()
