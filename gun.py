@@ -104,12 +104,14 @@ class GameEngine:
     """Игровой "движок", который следит за состоянием объектов и обновляет их."""
     def __init__(self):
         pygame.init()
+        self.points = 0
         self.running = True
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         self.gun = Gun(self.screen)
         self.target = Target(self.screen)
         self.balls = []
+        self.text = Text()
 
     def draw(self):
         """Метод, описывающий отрисовку объектов"""
@@ -118,6 +120,8 @@ class GameEngine:
         self.target.draw()
         for ball in self.balls:
             ball.draw()
+        for t in self.text.text:
+            self.screen.blit(t[0], t[1])
         pygame.display.update()
         self.clock.tick(FPS)
 
@@ -153,6 +157,20 @@ class GameEngine:
             ball.move()
             if ball.hittest(engine.target):
                 engine.target = Target(engine.screen)
+                engine.balls.remove(ball)
+
+
+
+
+class Text:
+    """Класс, в котором хранятся все шрифты и тексты, используемые в программе"""
+    def __init__(self):
+        pygame.font.init()
+        self.fonts = [pygame.font.SysFont('timesnewroman', 48), pygame.font.SysFont('timesnewroman', 36)]
+        self.text = []
+
+    def generate_text(self, font, x, y, str1, str2=''):
+        self.text.append((self.fonts[font].render(str1 + str2, True, BLACK), (x, y)))
 
 
 engine = GameEngine()
