@@ -63,21 +63,28 @@ class Ball:
 
 
 class Gun:
-    def __init__(self, screen, x, y):
+    def __init__(self, screen, x, y, place="left"):
         self.screen = screen
+        self.place = place
         self.power = 10
-        self.an = 20
+        self.an = 20 if self.place == "left" else 160
         self.x = x
         self.y = y - 15
         self.growth_power = 1
-        self.color = DARK_GREEN
+        self.color = DARK_GREEN if self.place == "left" else RED
 
     def move(self, c):
         self.x += c
-        if self.x > WIDTH//2-50:
-            self.x = WIDTH//2-50
-        if self.x < 50:
-            self.x = 50
+        if self.place == "left":
+            if self.x > WIDTH//2-50:
+                self.x = WIDTH//2-50
+            if self.x < 50:
+                self.x = 50
+        else:
+            if self.x > WIDTH-50:
+                self.x = WIDTH-50
+            if self.x < WIDTH//2+50:
+                self.x = WIDTH//2+50
 
     def targetting(self, c):
         """Изменение угла выстрела. Увеличение происходит при нажатии 'w', уменьшение -- при нажатии 's'."""
@@ -90,6 +97,8 @@ class Gun:
     def power_up(self):
         """Выбор скорости выстрела. Происходит при удерживании пробела"""
         self.power += self.growth_power
+        if self.power < 10 or self.power > 50:
+            self.growth_power = -self.growth_power
     
     def draw(self):
         pygame.draw.polygon(self.screen, self.color, [(self.x-30, self.y), (self.x+30, self.y), (self.x+20, self.y+15), (self.x-20, self.y+15)])
@@ -97,10 +106,10 @@ class Gun:
         pygame.draw.polygon(self.screen, self.color,
                             [(self.x-5*math.sin(math.radians(self.an)),
                               self.y-5*math.cos(math.radians(self.an))),
-                             (self.x-5*math.sin(math.radians(self.an))+(20+self.power)*math.cos(math.radians(self.an)),
-                              self.y-5*math.cos(math.radians(self.an))-(20+self.power)*math.sin(math.radians(self.an))),
-                             (self.x+5*math.sin(math.radians(self.an))+(20+self.power)*math.cos(math.radians(self.an)),
-                              self.y+5*math.cos(math.radians(self.an))-(20+self.power)*math.sin(math.radians(self.an))),
+                             (self.x-5*math.sin(math.radians(self.an))+(30+self.power)*math.cos(math.radians(self.an)),
+                              self.y-5*math.cos(math.radians(self.an))-(30+self.power)*math.sin(math.radians(self.an))),
+                             (self.x+5*math.sin(math.radians(self.an))+(30+self.power)*math.cos(math.radians(self.an)),
+                              self.y+5*math.cos(math.radians(self.an))-(30+self.power)*math.sin(math.radians(self.an))),
                              (self.x+5*math.sin(math.radians(self.an)),
                               self.y+5*math.cos(math.radians(self.an)))])
 
@@ -109,7 +118,8 @@ class Target:
     def __init__(self, screen):
         self.screen = screen
         self.r = randint(10, 30)
-        self.points = 50 - self.r
+        self.left_points = 50 - self.r
+        self.right_points = 50 - self.r
         self.x = randint(100, WIDTH - 100)
         self.y = randint(100, HEIGHT - 100)
         self.color = (RED, WHITE, BLACK)
@@ -124,13 +134,16 @@ class GameEngine:
     """Игровой "движок", который следит за состоянием объектов и обновляет их."""
     def __init__(self):
         pygame.init()
-        self.points = 0
+        self.left_points = 0
+        self.right_points = 0
         self.running = True
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
-        self.gun = Gun(self.screen, 50, HEIGHT-50)
+        self.left_gun = Gun(self.screen, 50, HEIGHT-50, "left")
+        self.right_gun = Gun(self.screen, WIDTH - 50, HEIGHT-50, "right")
         self.target = Target(self.screen)
-        self.balls = []
+        self.left_balls = []
+        self.right_balls = []
         self.fonts = [pygame.font.SysFont('timesnewroman', 30), pygame.font.SysFont('timesnewroman', 20)]
 
     def draw(self):
@@ -138,55 +151,90 @@ class GameEngine:
         self.screen.fill(LIGHT_ZEFIR)
         pygame.draw.rect(self.screen, BROWN, (0, HEIGHT-50, WIDTH, 50))
         self.target.draw()
-        for ball in self.balls:
+        for ball in self.left_balls:
             ball.draw()
-        self.gun.draw()
-        self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.points), True, BLACK), (10, 10))
-        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.points), True, BLACK), (10, 50))
+        for ball in self.right_balls:
+            ball.draw()
+        self.left_gun.draw()
+        self.right_gun.draw()
+        self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.left_points), True, BLACK), (10, 10))
+        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.left_points), True, BLACK), (10, 50))
+        self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.right_points), True, BLACK), (WIDTH-10, 10))
+        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.right_points), True, BLACK), (WIDTH-10, 50))
         pygame.display.update()
         self.clock.tick(FPS)
 
-    def shoot(self):
+    def left_shoot(self):
         """Метод описывает поведение игры при выстреле: создается новый шар, обновляются атрибуты объекта engine."""
-        new_ball = Ball(self.screen, self.gun.x, self.gun.y)
-        new_ball.vx = self.gun.power * math.cos(self.gun.an / 180 * math.pi)
-        new_ball.vy = self.gun.power * math.sin(self.gun.an / 180 * math.pi)
-        engine.balls.append(new_ball)
-        self.target.points -= 5
-        if self.target.points < 0:
-            self.target.points = 0
-        self.gun.power = 10
-        self.gun.growth_power = 1
-        self.gun.color = DARK_GREEN
+        new_ball = Ball(self.screen, self.left_gun.x, self.left_gun.y)
+        new_ball.vx = self.left_gun.power * math.cos(self.left_gun.an / 180 * math.pi)
+        new_ball.vy = self.left_gun.power * math.sin(self.left_gun.an / 180 * math.pi)
+        engine.left_balls.append(new_ball)
+        self.target.left_points -= 5
+        if self.target.left_points < 0:
+            self.target.left_points = 0
+        self.left_gun.power = 10
+        self.left_gun.growth_power = 1
+        self.left_gun.color = DARK_GREEN
+
+    def right_shoot(self):
+        """Метод описывает поведение игры при выстреле: создается новый шар, обновляются атрибуты объекта engine."""
+        new_ball = Ball(self.screen, self.right_gun.x, self.right_gun.y)
+        new_ball.vx = self.right_gun.power * math.cos(self.right_gun.an / 180 * math.pi)
+        new_ball.vy = self.right_gun.power * math.sin(self.right_gun.an / 180 * math.pi)
+        engine.right_balls.append(new_ball)
+        self.target.right_points -= 5
+        if self.target.right_points < 0:
+            self.target.right_points = 0
+        self.right_gun.power = 10
+        self.right_gun.growth_power = 1
+        self.right_gun.color = RED
 
     def checking_events(self):
         """Метод проверяет события, произошедшие за один кадр и вызывает соответствующие методы своих атрибутов."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 self.running = False
-            if event.type == pygame.KEYUP and event.key == pygame.K_SPACE:
-                self.shoot()
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_SPACE:
+                    self.left_shoot()
+                if event.key == pygame.K_RETURN:
+                    self.right_shoot()
             keys = pygame.key.get_pressed()
             if keys[pygame.K_d]:
-                self.gun.move(1)
+                self.left_gun.move(1)
             if keys[pygame.K_a]:
-                self.gun.move(-1)
+                self.left_gun.move(-1)
             if keys[pygame.K_w]:
-                self.gun.targetting(1)
+                self.left_gun.targetting(1)
             if keys[pygame.K_s]:
-                self.gun.targetting(-1)
+                self.left_gun.targetting(-1)
             if keys[pygame.K_SPACE]:
-                if self.gun.power < 10 or self.gun.power > 50:
-                    self.gun.growth_power = -self.gun.growth_power
-                self.gun.power_up()
+                self.left_gun.power_up()
+            if keys[pygame.K_LEFT]:
+                self.right_gun.move(-1)
+            if keys[pygame.K_RIGHT]:
+                self.right_gun.move(1)
+            if keys[pygame.K_UP]:
+                self.right_gun.targetting(-1)
+            if keys[pygame.K_DOWN]:
+                self.right_gun.targetting(1)
+            if keys[pygame.K_RETURN]:
+                self.right_gun.power_up()
 
     def update_balls(self):
-        for ball in engine.balls:
+        for ball in engine.left_balls:
             ball.move()
             if ball.hittest(engine.target):
-                self.points += self.target.points
+                self.left_points += self.target.left_points
                 engine.target = Target(engine.screen)
-                engine.balls.remove(ball)
+                engine.left_balls.remove(ball)
+        for ball in engine.right_balls:
+            ball.move()
+            if ball.hittest(engine.target):
+                self.right_points += self.target.right_points
+                engine.target = Target(engine.screen)
+                engine.right_balls.remove(ball)
 
 
 engine = GameEngine()
