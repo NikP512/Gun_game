@@ -140,7 +140,9 @@ class GameEngine:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         self.left_gun = Gun(self.screen, 50, HEIGHT-50, "left")
+        self.left_events = [False, False, False, False, False]
         self.right_gun = Gun(self.screen, WIDTH - 50, HEIGHT-50, "right")
+        self.right_events = [False, False, False, False, False]
         self.target = Target(self.screen)
         self.left_balls = []
         self.right_balls = []
@@ -159,8 +161,8 @@ class GameEngine:
         self.right_gun.draw()
         self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.left_points), True, BLACK), (10, 10))
         self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.left_points), True, BLACK), (10, 50))
-        self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.right_points), True, BLACK), (WIDTH-10, 10))
-        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.right_points), True, BLACK), (WIDTH-10, 50))
+        self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.right_points), True, BLACK), (WIDTH-300, 10))
+        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.right_points), True, BLACK), (WIDTH-300, 50))
         pygame.display.update()
         self.clock.tick(FPS)
 
@@ -195,31 +197,71 @@ class GameEngine:
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 self.running = False
+            if event.type == pygame.KEYDOWN:
+                match event.key:
+                    case pygame.K_a:
+                        self.left_events[0] = True
+                    case pygame.K_d:
+                        self.left_events[1] = True
+                    case pygame.K_w:
+                        self.left_events[2] = True
+                    case pygame.K_s:
+                        self.left_events[3] = True
+                    case pygame.K_SPACE:
+                        self.left_events[4] = True
+                    case pygame.K_KP4:
+                        self.right_events[0] = True
+                    case pygame.K_KP6:
+                        self.right_events[1] = True
+                    case pygame.K_KP8:
+                        self.right_events[2] = True
+                    case pygame.K_KP2:
+                        self.right_events[3] = True
+                    case pygame.K_KP5:
+                        self.right_events[4] = True
             if event.type == pygame.KEYUP:
-                if event.key == pygame.K_SPACE:
-                    self.left_shoot()
-                if event.key == pygame.K_RETURN:
-                    self.right_shoot()
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_d]:
-                self.left_gun.move(1)
-            if keys[pygame.K_a]:
+                match event.key:
+                    case pygame.K_a:
+                        self.left_events[0] = False
+                    case pygame.K_d:
+                        self.left_events[1] = False
+                    case pygame.K_w:
+                        self.left_events[2] = False
+                    case pygame.K_s:
+                        self.left_events[3] = False
+                    case pygame.K_SPACE:
+                        self.left_events[4] = False
+                        self.left_shoot()
+                    case pygame.K_KP4:
+                        self.right_events[0] = False
+                    case pygame.K_KP6:
+                        self.right_events[1] = False
+                    case pygame.K_KP8:
+                        self.right_events[2] = False
+                    case pygame.K_KP2:
+                        self.right_events[3] = False
+                    case pygame.K_KP5:
+                        self.right_events[4] = False
+                        self.right_shoot()
+            if self.left_events[0]:
                 self.left_gun.move(-1)
-            if keys[pygame.K_w]:
+            if self.left_events[1]:
+                self.left_gun.move(1)
+            if self.left_events[2]:
                 self.left_gun.targetting(1)
-            if keys[pygame.K_s]:
+            if self.left_events[3]:
                 self.left_gun.targetting(-1)
-            if keys[pygame.K_SPACE]:
+            if self.left_events[4]:
                 self.left_gun.power_up()
-            if keys[pygame.K_LEFT]:
+            if self.right_events[0]:
                 self.right_gun.move(-1)
-            if keys[pygame.K_RIGHT]:
+            if self.right_events[1]:
                 self.right_gun.move(1)
-            if keys[pygame.K_UP]:
+            if self.right_events[2]:
                 self.right_gun.targetting(-1)
-            if keys[pygame.K_DOWN]:
+            if self.right_events[3]:
                 self.right_gun.targetting(1)
-            if keys[pygame.K_RETURN]:
+            if self.right_events[4]:
                 self.right_gun.power_up()
 
     def update_balls(self):
