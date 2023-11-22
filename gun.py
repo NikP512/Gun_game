@@ -101,7 +101,8 @@ class Gun:
             self.growth_power = -self.growth_power
     
     def draw(self):
-        pygame.draw.polygon(self.screen, self.color, [(self.x-30, self.y), (self.x+30, self.y), (self.x+20, self.y+15), (self.x-20, self.y+15)])
+        pygame.draw.polygon(self.screen, self.color, [(self.x-30, self.y), (self.x+30, self.y),
+                                                      (self.x+20, self.y+15), (self.x-20, self.y+15)])
         pygame.draw.circle(self.screen, self.color, (self.x, self.y), 15)
         pygame.draw.polygon(self.screen, self.color,
                             [(self.x-5*math.sin(math.radians(self.an)),
@@ -114,7 +115,7 @@ class Gun:
                               self.y+5*math.cos(math.radians(self.an)))])
 
 
-class Target:
+class StoppedTarget:
     def __init__(self, screen):
         self.screen = screen
         self.r = randint(10, 30)
@@ -130,6 +131,31 @@ class Target:
         pygame.draw.circle(self.screen, self.color[2], (self.x, self.y), 2)
 
 
+class MovedTarget:
+    def __init__(self, screen):
+        self.screen = screen
+        self.r = randint(10, 30)
+        self.left_points = 50 - self.r
+        self.right_points = 50 - self.r
+        self.x = randint(100, WIDTH - 100)
+        self.y = randint(100, HEIGHT - 100)
+        self.vx = randint(-10, 10)
+        self.vy = randint(-10, 10)
+        self.color = (BLUE, WHITE, BLACK)
+
+    def draw(self):
+        pygame.draw.circle(self.screen, self.color[0], (self.x, self.y), self.r, width=self.r//2)
+        pygame.draw.circle(self.screen, self.color[1], (self.x, self.y), self.r-self.r//2)
+        pygame.draw.circle(self.screen, self.color[2], (self.x, self.y), 2)
+
+    def move(self):
+        self.x += self.vx
+        self.y -= self.vy
+        if (self.x < 100 and self.vx < 0) or (self.x > WIDTH - 100 and self.vx > 0):
+            self.vx = -self.vx
+        if (self.y < 100 and self.vy > 0) or (self.y > HEIGHT - 100 and self.vy < 0):
+            self.vy = -self.vy
+
 class GameEngine:
     """Игровой "движок", который следит за состоянием объектов и обновляет их."""
     def __init__(self):
@@ -143,7 +169,8 @@ class GameEngine:
         self.left_events = [False, False, False, False, False]
         self.right_gun = Gun(self.screen, WIDTH - 50, HEIGHT-50, "right")
         self.right_events = [False, False, False, False, False]
-        self.target = Target(self.screen)
+        self.target1 = StoppedTarget(self.screen)
+        self.target2 = MovedTarget(self.screen)
         self.left_balls = []
         self.right_balls = []
         self.fonts = [pygame.font.SysFont('timesnewroman', 30), pygame.font.SysFont('timesnewroman', 20)]
@@ -152,7 +179,8 @@ class GameEngine:
         """Метод, описывающий отрисовку объектов"""
         self.screen.fill(LIGHT_ZEFIR)
         pygame.draw.rect(self.screen, BROWN, (0, HEIGHT-50, WIDTH, 50))
-        self.target.draw()
+        self.target1.draw()
+        self.target2.draw()
         for ball in self.left_balls:
             ball.draw()
         for ball in self.right_balls:
@@ -160,9 +188,9 @@ class GameEngine:
         self.left_gun.draw()
         self.right_gun.draw()
         self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.left_points), True, BLACK), (10, 10))
-        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.left_points), True, BLACK), (10, 50))
+        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target1.left_points+self.target2.left_points), True, BLACK), (10, 50))
         self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.right_points), True, BLACK), (WIDTH-300, 10))
-        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.right_points), True, BLACK), (WIDTH-300, 50))
+        self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target1.right_points+self.target2.right_points), True, BLACK), (WIDTH-300, 50))
         pygame.display.update()
         self.clock.tick(FPS)
 
@@ -172,9 +200,12 @@ class GameEngine:
         new_ball.vx = self.left_gun.power * math.cos(self.left_gun.an / 180 * math.pi)
         new_ball.vy = self.left_gun.power * math.sin(self.left_gun.an / 180 * math.pi)
         engine.left_balls.append(new_ball)
-        self.target.left_points -= 5
-        if self.target.left_points < 0:
-            self.target.left_points = 0
+        self.target1.left_points -= 5
+        self.target2.left_points -= 5
+        if self.target1.left_points < 0:
+            self.target1.left_points = 0
+        if self.target2.left_points < 0:
+            self.target2.left_points = 0
         self.left_gun.power = 10
         self.left_gun.growth_power = 1
         self.left_gun.color = DARK_GREEN
@@ -185,9 +216,12 @@ class GameEngine:
         new_ball.vx = self.right_gun.power * math.cos(self.right_gun.an / 180 * math.pi)
         new_ball.vy = self.right_gun.power * math.sin(self.right_gun.an / 180 * math.pi)
         engine.right_balls.append(new_ball)
-        self.target.right_points -= 5
-        if self.target.right_points < 0:
-            self.target.right_points = 0
+        self.target1.right_points -= 5
+        self.target2.right_points -= 5
+        if self.target1.right_points < 0:
+            self.target1.right_points = 0
+        if self.target2.right_points < 0:
+            self.target2.right_points = 0
         self.right_gun.power = 10
         self.right_gun.growth_power = 1
         self.right_gun.color = RED
@@ -242,40 +276,49 @@ class GameEngine:
                         self.right_events[3] = False
                     case pygame.K_KP5:
                         self.right_events[4] = False
-                        self.right_shoot()
-            if self.left_events[0]:
-                self.left_gun.move(-1)
-            if self.left_events[1]:
-                self.left_gun.move(1)
-            if self.left_events[2]:
-                self.left_gun.targetting(1)
-            if self.left_events[3]:
-                self.left_gun.targetting(-1)
-            if self.left_events[4]:
-                self.left_gun.power_up()
-            if self.right_events[0]:
-                self.right_gun.move(-1)
-            if self.right_events[1]:
-                self.right_gun.move(1)
-            if self.right_events[2]:
-                self.right_gun.targetting(-1)
-            if self.right_events[3]:
-                self.right_gun.targetting(1)
-            if self.right_events[4]:
-                self.right_gun.power_up()
+                        self.right_shoot(),
+        if self.left_events[0]:
+            self.left_gun.move(-1)
+        if self.left_events[1]:
+            self.left_gun.move(1)
+        if self.left_events[2]:
+            self.left_gun.targetting(1)
+        if self.left_events[3]:
+            self.left_gun.targetting(-1)
+        if self.left_events[4]:
+            self.left_gun.power_up()
+        if self.right_events[0]:
+            self.right_gun.move(-1)
+        if self.right_events[1]:
+            self.right_gun.move(1)
+        if self.right_events[2]:
+            self.right_gun.targetting(-1)
+        if self.right_events[3]:
+            self.right_gun.targetting(1)
+        if self.right_events[4]:
+            self.right_gun.power_up()
 
-    def update_balls(self):
+    def update(self):
+        self.target2.move()
         for ball in engine.left_balls:
             ball.move()
-            if ball.hittest(engine.target):
-                self.left_points += self.target.left_points
-                engine.target = Target(engine.screen)
+            if ball.hittest(engine.target1):
+                self.left_points += self.target1.left_points
+                engine.target1 = StoppedTarget(engine.screen)
+                engine.left_balls.remove(ball)
+            if ball.hittest(engine.target2):
+                self.left_points += self.target2.left_points
+                engine.target2 = MovedTarget(engine.screen)
                 engine.left_balls.remove(ball)
         for ball in engine.right_balls:
             ball.move()
-            if ball.hittest(engine.target):
-                self.right_points += self.target.right_points
-                engine.target = Target(engine.screen)
+            if ball.hittest(engine.target1):
+                self.right_points += self.target1.right_points
+                engine.target1 = StoppedTarget(engine.screen)
+                engine.right_balls.remove(ball)
+            if ball.hittest(engine.target2):
+                self.right_points += self.target2.right_points
+                engine.target2 = MovedTarget(engine.screen)
                 engine.right_balls.remove(ball)
 
 
@@ -283,5 +326,5 @@ engine = GameEngine()
 while engine.running:
     engine.draw()
     engine.checking_events()
-    engine.update_balls()
+    engine.update()
 pygame.quit()
