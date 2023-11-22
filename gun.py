@@ -10,11 +10,13 @@ RED = 0xFF0000
 BLUE = 0x0000FF
 YELLOW = 0xFFC91F
 GREEN = 0x00FF00
+DARK_GREEN = (0, 69, 36)
 MAGENTA = 0xFF03B8
 CYAN = 0x00FFCC
 BLACK = (0, 0, 0)
 WHITE = 0xFFFFFF
 GREY = 0x7D7D7D
+BROWN = (150, 75, 0)
 LIGHT_ZEFIR = (233, 216, 218)
 GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 
@@ -25,7 +27,7 @@ G = 0
 
 
 class Ball:
-    def __init__(self, screen, x=0, y=500):
+    def __init__(self, screen, x, y):
         self.screen = screen
         self.x = x
         self.y = y
@@ -61,38 +63,55 @@ class Ball:
 
 
 class Gun:
-    def __init__(self, screen):
+    def __init__(self, screen, x, y):
         self.screen = screen
         self.power = 10
-        self.an = 0
+        self.an = 20
+        self.x = x
+        self.y = y - 15
         self.growth_power = 1
-        self.color = GREY
+        self.color = DARK_GREEN
+
+    def move(self, c):
+        self.x += c
+        if self.x > WIDTH//2-50:
+            self.x = WIDTH//2-50
+        if self.x < 50:
+            self.x = 50
 
     def targetting(self, c):
         """Изменение угла выстрела. Увеличение происходит при нажатии 'w', уменьшение -- при нажатии 's'."""
-        self.color = GREEN
         self.an += c
-        if self.an > 90:
-            self.an = 90
-        if self.an < 0:
-            self.an = 0
+        if self.an > 160:
+            self.an = 160
+        if self.an < 20:
+            self.an = 20
 
     def power_up(self):
         """Выбор скорости выстрела. Происходит при удерживании пробела"""
-        self.color = RED
         self.power += self.growth_power
     
     def draw(self):
-        pygame.draw.polygon(self.screen, self.color, [(0, 500), (self.power*math.cos(self.an/180*math.pi), 500-self.power*math.sin(self.an/180*math.pi)), (10*math.sin(self.an/180*math.pi)+self.power*math.cos(self.an/180*math.pi), 500+10*math.cos(self.an/180*math.pi)-self.power*math.sin(self.an/180*math.pi)), (10*math.sin(self.an/180*math.pi), 500+10*math.cos(self.an/180*math.pi))])
+        pygame.draw.polygon(self.screen, self.color, [(self.x-30, self.y), (self.x+30, self.y), (self.x+20, self.y+15), (self.x-20, self.y+15)])
+        pygame.draw.circle(self.screen, self.color, (self.x, self.y), 15)
+        pygame.draw.polygon(self.screen, self.color,
+                            [(self.x-5*math.sin(math.radians(self.an)),
+                              self.y-5*math.cos(math.radians(self.an))),
+                             (self.x-5*math.sin(math.radians(self.an))+(20+self.power)*math.cos(math.radians(self.an)),
+                              self.y-5*math.cos(math.radians(self.an))-(20+self.power)*math.sin(math.radians(self.an))),
+                             (self.x+5*math.sin(math.radians(self.an))+(20+self.power)*math.cos(math.radians(self.an)),
+                              self.y+5*math.cos(math.radians(self.an))-(20+self.power)*math.sin(math.radians(self.an))),
+                             (self.x+5*math.sin(math.radians(self.an)),
+                              self.y+5*math.cos(math.radians(self.an)))])
 
 
 class Target:
     def __init__(self, screen):
         self.screen = screen
-        self.r = randint(10, 20)
-        self.points = 150 - 5*self.r
-        self.x = randint(WIDTH//2, WIDTH-self.r)
-        self.y = randint(self.r, 500)
+        self.r = randint(10, 30)
+        self.points = 50 - self.r
+        self.x = randint(100, WIDTH - 100)
+        self.y = randint(100, HEIGHT - 100)
         self.color = (RED, WHITE, BLACK)
 
     def draw(self):
@@ -109,18 +128,19 @@ class GameEngine:
         self.running = True
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
-        self.gun = Gun(self.screen)
+        self.gun = Gun(self.screen, 50, HEIGHT-50)
         self.target = Target(self.screen)
         self.balls = []
-        self.fonts = [pygame.font.SysFont('timesnewroman', 48), pygame.font.SysFont('timesnewroman', 36)]
+        self.fonts = [pygame.font.SysFont('timesnewroman', 30), pygame.font.SysFont('timesnewroman', 20)]
 
     def draw(self):
         """Метод, описывающий отрисовку объектов"""
         self.screen.fill(LIGHT_ZEFIR)
-        self.gun.draw()
+        pygame.draw.rect(self.screen, BROWN, (0, HEIGHT-50, WIDTH, 50))
         self.target.draw()
         for ball in self.balls:
             ball.draw()
+        self.gun.draw()
         self.screen.blit(self.fonts[0].render("Количество очков:" + str(self.points), True, BLACK), (10, 10))
         self.screen.blit(self.fonts[1].render("Количество очков в раунде:" + str(self.target.points), True, BLACK), (10, 50))
         pygame.display.update()
@@ -128,14 +148,16 @@ class GameEngine:
 
     def shoot(self):
         """Метод описывает поведение игры при выстреле: создается новый шар, обновляются атрибуты объекта engine."""
-        new_ball = Ball(self.screen)
+        new_ball = Ball(self.screen, self.gun.x, self.gun.y)
         new_ball.vx = self.gun.power * math.cos(self.gun.an / 180 * math.pi)
         new_ball.vy = self.gun.power * math.sin(self.gun.an / 180 * math.pi)
         engine.balls.append(new_ball)
         self.target.points -= 5
+        if self.target.points < 0:
+            self.target.points = 0
         self.gun.power = 10
         self.gun.growth_power = 1
-        self.gun.color = GREY
+        self.gun.color = DARK_GREEN
 
     def checking_events(self):
         """Метод проверяет события, произошедшие за один кадр и вызывает соответствующие методы своих атрибутов."""
@@ -145,14 +167,18 @@ class GameEngine:
             if event.type == pygame.KEYUP and event.key == pygame.K_SPACE:
                 self.shoot()
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_SPACE]:
-                if self.gun.power < 10 or self.gun.power > 50:
-                    self.gun.growth_power = -self.gun.growth_power
-                self.gun.power_up()
+            if keys[pygame.K_d]:
+                self.gun.move(1)
+            if keys[pygame.K_a]:
+                self.gun.move(-1)
             if keys[pygame.K_w]:
                 self.gun.targetting(1)
             if keys[pygame.K_s]:
                 self.gun.targetting(-1)
+            if keys[pygame.K_SPACE]:
+                if self.gun.power < 10 or self.gun.power > 50:
+                    self.gun.growth_power = -self.gun.growth_power
+                self.gun.power_up()
 
     def update_balls(self):
         for ball in engine.balls:
