@@ -156,6 +156,7 @@ class MovedTarget:
         if (self.y < 100 and self.vy > 0) or (self.y > HEIGHT - 100 and self.vy < 0):
             self.vy = -self.vy
 
+
 class GameEngine:
     """Игровой "движок", который следит за состоянием объектов и обновляет их."""
     def __init__(self):
