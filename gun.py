@@ -53,7 +53,7 @@ class Gun:
     def __init__(self, screen, x, y, place="left"):
         self.screen = screen
         self.place = place
-        self.frozen = False
+        self.frozen = [0, 0]
         self.growth_power = 1
         self.power = 10
         self.an = 20 if self.place == "left" else 160
@@ -91,10 +91,10 @@ class Gun:
         pygame.draw.polygon(self.screen, self.color[0],
                             [(self.x-5*math.sin(math.radians(self.an)),
                               self.y-5*math.cos(math.radians(self.an))),
-                             (self.x-5*math.sin(math.radians(self.an))+(30+self.power)*math.cos(math.radians(self.an)),
-                              self.y-5*math.cos(math.radians(self.an))-(30+self.power)*math.sin(math.radians(self.an))),
-                             (self.x+5*math.sin(math.radians(self.an))+(30+self.power)*math.cos(math.radians(self.an)),
-                              self.y+5*math.cos(math.radians(self.an))-(30+self.power)*math.sin(math.radians(self.an))),
+                             (self.x-5*math.sin(math.radians(self.an))+(30+self.power//2)*math.cos(math.radians(self.an)),
+                              self.y-5*math.cos(math.radians(self.an))-(30+self.power//2)*math.sin(math.radians(self.an))),
+                             (self.x+5*math.sin(math.radians(self.an))+(30+self.power//2)*math.cos(math.radians(self.an)),
+                              self.y+5*math.cos(math.radians(self.an))-(30+self.power//2)*math.sin(math.radians(self.an))),
                              (self.x+5*math.sin(math.radians(self.an)),
                               self.y+5*math.cos(math.radians(self.an)))])
         pygame.draw.circle(self.screen, self.color[1], (self.x, self.y), self.r)
@@ -266,15 +266,15 @@ class GameEngine:
                         self.left_events[3] = True
                     case pygame.K_SPACE:
                         self.left_events[4] = True
-                    case pygame.K_KP4:
+                    case pygame.K_LEFT:
                         self.right_events[0] = True
-                    case pygame.K_KP6:
+                    case pygame.K_RIGHT:
                         self.right_events[1] = True
-                    case pygame.K_KP8:
+                    case pygame.K_UP:
                         self.right_events[2] = True
-                    case pygame.K_KP2:
+                    case pygame.K_DOWN:
                         self.right_events[3] = True
-                    case pygame.K_KP5:
+                    case pygame.K_RETURN:
                         self.right_events[4] = True
             if event.type == pygame.KEYUP:
                 match event.key:
@@ -289,51 +289,63 @@ class GameEngine:
                     case pygame.K_SPACE:
                         self.left_events[4] = False
                         self.left_shoot()
-                    case pygame.K_KP4:
+                    case pygame.K_LEFT:
                         self.right_events[0] = False
-                    case pygame.K_KP6:
+                    case pygame.K_RIGHT:
                         self.right_events[1] = False
-                    case pygame.K_KP8:
+                    case pygame.K_UP:
                         self.right_events[2] = False
-                    case pygame.K_KP2:
+                    case pygame.K_DOWN:
                         self.right_events[3] = False
-                    case pygame.K_KP5:
+                    case pygame.K_RETURN:
                         self.right_events[4] = False
                         self.right_shoot(),
-        if self.left_events[0]:
-            self.left_gun.move(-1)
-        if self.left_events[1]:
-            self.left_gun.move(1)
-        if self.left_events[2]:
-            self.left_gun.targetting(1)
-        if self.left_events[3]:
-            self.left_gun.targetting(-1)
-        if self.left_events[4]:
-            self.left_gun.power_up()
-        if self.right_events[0]:
-            self.right_gun.move(-1)
-        if self.right_events[1]:
-            self.right_gun.move(1)
-        if self.right_events[2]:
-            self.right_gun.targetting(-1)
-        if self.right_events[3]:
-            self.right_gun.targetting(1)
-        if self.right_events[4]:
-            self.right_gun.power_up()
+        if self.left_gun.frozen[0] == 0:
+            if self.left_events[0]:
+                self.left_gun.move(-1)
+            if self.left_events[1]:
+                self.left_gun.move(1)
+            if self.left_events[2]:
+                self.left_gun.targetting(1)
+            if self.left_events[3]:
+                self.left_gun.targetting(-1)
+            if self.left_events[4]:
+                self.left_gun.power_up()
+        if self.right_gun.frozen[0] == 0:
+            if self.right_events[0]:
+                self.right_gun.move(-1)
+            if self.right_events[1]:
+                self.right_gun.move(1)
+            if self.right_events[2]:
+                self.right_gun.targetting(-1)
+            if self.right_events[3]:
+                self.right_gun.targetting(1)
+            if self.right_events[4]:
+                self.right_gun.power_up()
 
     def generate_bombs(self):
-        if self.cadr % 100 == 0:
+        if self.cadr % 200 == 0:
             self.bombs.append(Bomb(self.screen))
 
     def update(self):
         self.cadr += 1
         self.generate_bombs()
+        if self.left_gun.frozen[0] == 1:
+            self.left_gun.frozen[1] += 1
+        if self.left_gun.frozen[1] >= 100:
+            self.left_gun.frozen[0] = 0
+            self.left_gun.frozen[1] = 0
+        if self.right_gun.frozen[0] == 1:
+            self.right_gun.frozen[1] += 1
+        if self.right_gun.frozen[1] >= 100:
+            self.right_gun.frozen[0] = 0
+            self.right_gun.frozen[1] = 0
         for bomb in self.bombs:
             bomb.move()
             if bomb.hittest(self.left_gun):
-                self.left_gun.frozen = True
+                self.left_gun.frozen[0] = 1
             if bomb.hittest(self.right_gun):
-                self.left_gun.frozen = True
+                self.left_gun.frozen[0] = 1
             if bomb.y > HEIGHT - 50:
                 self.bombs.remove(bomb)
         self.target2.move()
@@ -344,20 +356,20 @@ class GameEngine:
                 self.left_points += self.target1.left_points
                 self.target1 = StoppedTarget(self.screen)
                 self.left_balls.remove(ball)
-            if ball.hittest(self.target2):
+            elif ball.hittest(self.target2):
                 self.left_points += self.target2.left_points
                 self.target2 = MovedTarget(self.screen)
                 self.left_balls.remove(ball)
-            if ball.hittest(self.target3):
+            elif ball.hittest(self.target3):
                 self.left_points += self.target3.left_points
                 self.target3 = RandomTarget(self.screen)
                 self.left_balls.remove(ball)
-            if ball.hittest(self.right_gun):
-                self.right_gun.frozen = True
+            elif ball.hittest(self.right_gun):
+                self.right_gun.frozen[0] = 1
                 self.left_balls.remove(ball)
-            if (ball.x < 0 and ball.vx < 0) or (ball.x > WIDTH and ball.vx > 0):
+            elif (ball.x < 0 and ball.vx < 0) or (ball.x > WIDTH and ball.vx > 0):
                 self.left_balls.remove(ball)
-            if ball.y > HEIGHT - 50 and ball.vy < 0:
+            elif ball.y > HEIGHT - 50 and ball.vy < 0:
                 self.left_balls.remove(ball)
         for ball in self.right_balls:
             ball.move()
@@ -365,20 +377,20 @@ class GameEngine:
                 self.right_points += self.target1.right_points
                 self.target1 = StoppedTarget(self.screen)
                 self.right_balls.remove(ball)
-            if ball.hittest(self.target2):
+            elif ball.hittest(self.target2):
                 self.right_points += self.target2.right_points
                 self.target2 = MovedTarget(self.screen)
                 self.right_balls.remove(ball)
-            if ball.hittest(self.target3):
+            elif ball.hittest(self.target3):
                 self.right_points += self.target3.right_points
                 self.target3 = RandomTarget(self.screen)
                 self.right_balls.remove(ball)
-            if ball.hittest(self.left_gun):
-                self.left_gun.frozen = True
+            elif ball.hittest(self.left_gun):
+                self.left_gun.frozen[0] = 1
                 self.right_balls.remove(ball)
-            if (ball.x < 0 and ball.vx < 0) or (ball.x > WIDTH and ball.vx > 0):
+            elif (ball.x < 0 and ball.vx < 0) or (ball.x > WIDTH and ball.vx > 0):
                 self.right_balls.remove(ball)
-            if ball.y > HEIGHT - 50 and ball.vy < 0:
+            elif ball.y > HEIGHT - 50 and ball.vy < 0:
                 self.right_balls.remove(ball)
 
 
