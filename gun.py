@@ -91,15 +91,19 @@ class Gun:
         pygame.draw.polygon(self.screen, self.color[0],
                             [(self.x-5*math.sin(math.radians(self.an)),
                               self.y-5*math.cos(math.radians(self.an))),
-                             (self.x-5*math.sin(math.radians(self.an))+(30+self.power//2)*math.cos(math.radians(self.an)),
-                              self.y-5*math.cos(math.radians(self.an))-(30+self.power//2)*math.sin(math.radians(self.an))),
-                             (self.x+5*math.sin(math.radians(self.an))+(30+self.power//2)*math.cos(math.radians(self.an)),
-                              self.y+5*math.cos(math.radians(self.an))-(30+self.power//2)*math.sin(math.radians(self.an))),
+                             (self.x-5*math.sin(math.radians(self.an)) +
+                              (30+self.power//2)*math.cos(math.radians(self.an)),
+                              self.y-5*math.cos(math.radians(self.an)) -
+                              (30+self.power//2)*math.sin(math.radians(self.an))),
+                             (self.x+5*math.sin(math.radians(self.an)) +
+                              (30+self.power//2)*math.cos(math.radians(self.an)),
+                              self.y+5*math.cos(math.radians(self.an)) -
+                              (30+self.power//2)*math.sin(math.radians(self.an))),
                              (self.x+5*math.sin(math.radians(self.an)),
                               self.y+5*math.cos(math.radians(self.an)))])
         pygame.draw.circle(self.screen, self.color[1], (self.x, self.y), self.r)
         pygame.draw.polygon(self.screen, self.color[0], [(self.x-30, self.y), (self.x+30, self.y),
-                                                      (self.x+20, self.y+15), (self.x-20, self.y+15)])
+                                                         (self.x+20, self.y+15), (self.x-20, self.y+15)])
 
 
 class StoppedTarget:
